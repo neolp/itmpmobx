@@ -9,7 +9,7 @@ class Core {
     this.states.set('@state', 0)
   }
 
-  getter = (url) => {
+  getter(url) {
     try {
       return this.states.get(url)
     } catch (e) {
@@ -17,7 +17,7 @@ class Core {
     }
 
   }
-  setter = (url, value) => {
+  setter(url, value) {
     try {
       return this.states.set(url, value)
     } catch (e) {
@@ -77,7 +77,7 @@ class Core {
     })
   }
 
-  unsubscribe = (url) => {
+  unsubscribe(url) {
     console.log('UNsubscribe', url)
     if (!url.startsWith('itmpws://'))
       throw new Error('unknown schema')
@@ -86,14 +86,14 @@ class Core {
     return itmp.unsubscribeOnce(parts[1])
   }
 
-  call = (url, args) => {
+  call(url, args) {
     console.log('call', url, args)
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
     console.log(itmp)
     return itmp.call(parts[1], args)
   }
-  emit = (url, value) => {
+  emit(url, value) {
     console.log('emit', url, value)
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
@@ -101,7 +101,7 @@ class Core {
 
     return itmp.emit(parts[1], value)
   }
-  splitUrl = (url) => {
+  splitUrl(url) {
     //const parts = url.slice(9).split('/', 2)
     let parts
     let sep = url.slice(9).indexOf('/');
