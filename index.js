@@ -6,7 +6,22 @@ class Core {
   constructor() {
     this.connections = new Map()
     this.states = observable.map()
-    this.states.set('@state', 0)
+    this.intstates = observable.map()
+    //    this.states.set('@state', 0)
+  }
+
+  state(url) {
+    if (!url.startsWith('itmpws://')) {
+      console.error('state unknown schema', url)
+      throw new Error('unknown schema')
+    }
+    const parts = this.splitUrl(url)
+    try {
+      return this.intstates.get(parts[0]) || 'init'
+    } catch (e) {
+      return undefined
+    }
+
   }
 
   getter(url) {
@@ -29,34 +44,44 @@ class Core {
     let itmp = this.connections.get(hostport) // try to get connection
     if (!itmp) {
       console.log('connect new', hostport)
-      let onlinecount = this.isonline.bind(this);
       itmp = new ITMP({
         uri: "ws://" + hostport + "/ws/",
         binaryType: 'arraybuffer',
         reconnectTimeout: 3000,
         autoReconnect: true,
         reconnectMaxCount: 0,
-        onOpen: () => { onlinecount() },
-        onClose: () => { onlinecount() },
-        onError: () => { onlinecount() },
-        onReconnect: () => { onlinecount() }
+        onOpen: () => {
+          this.intstates.set(hostport, 'online')
+        },
+        onClose: () => {
+          this.intstates.set(hostport, 'offline')
+        },
+        onError: () => { },
+        onReconnect: () => { }
       })
+      this.intstates.set(hostport, 'trying')
       itmp.connect()
       this.connections.set(hostport, itmp)
     }
 
     return itmp
   }
-  isonline() {
-    let r = 0
-    this.connections.forEach((v, k, m) => {
-      console.log(k)
-      if (v.state === 1)//      this.state !== WebSocket.CLOSED
-        r++
+
+  getvalue(url, opts) {
+    if (!url.startsWith('itmpws://')) {
+      console.error('subscribe unknown schema', url)
+      throw new Error('unknown schema')
+    }
+    const parts = this.splitUrl(url)
+    let itmp = this.connect(parts[0])
+    this.states.set(url, undefined)
+    console.log('subscribe', url, '=', parts[0], '->', parts[1])
+
+    return itmp.call(parts[1], undefined).then((value) => {
+      console.log('got', url, value)
+      this.states.set(url, value)
+      return value
     })
-    this.states.set('@state', r)
-    console.log(this.states)
-    return r
   }
 
   subscribe(url, opts, cb) {
