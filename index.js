@@ -1,4 +1,7 @@
-import { observable } from 'mobx'
+import {
+  observable, onBecomeObserved,
+  onBecomeUnobserved
+} from 'mobx'
 import ITMP from 'itmpws'
 
 
@@ -7,6 +10,7 @@ class Core {
     this.suburl = suburl
     this.connections = new Map()
     this.states = observable.map()
+    this.statesobservers = new Map()
     this.intstates = observable.map()
     //    this.states.set('@state', 0)
   }
@@ -26,6 +30,20 @@ class Core {
   }
 
   getter(url) {
+    if (url.startsWith('itmpws://') && !this.statesobservers.has(url)) {
+      console.log('auto subscribe', url)
+      this.subscribe(url)
+      if (!this.states.has(url))
+        this.states.set(url, undefined)
+      let rem = onBecomeUnobserved(this.states, url, () => {
+        this.statesobservers.get(url)() //disconnect hook
+        this.statesobservers.delete(url)
+        this.states.delete(url)
+        this.unsubscribe(url)
+        console.log('auto unsubscribe', url)
+      })
+      this.statesobservers.set(url, rem)
+    }
     try {
       return this.states.get(url)
     } catch (e) {
@@ -76,7 +94,7 @@ class Core {
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
     this.states.set(url, undefined)
-    console.log('subscribe', url, '=', parts[0], '->', parts[1])
+    // console.log('get value', url, '=', parts[0], '->', parts[1])
 
     return itmp.call(parts[1], undefined).then((value) => {
       console.log('got', url, value)
@@ -93,7 +111,7 @@ class Core {
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
     this.states.set(url, undefined)
-    console.log('subscribe', url, '=', parts[0], '->', parts[1])
+    // console.log('subscribe', url, '=', parts[0], '->', parts[1])
 
     return itmp.subscribeOnce(parts[1], (exttopic, value) => {
       this.states.set(url, value)
@@ -104,7 +122,7 @@ class Core {
   }
 
   unsubscribe(url) {
-    console.log('UNsubscribe', url)
+    // console.log('UNsubscribe', url)
     if (!url.startsWith('itmpws://'))
       throw new Error('unknown schema')
     const parts = this.splitUrl(url)
