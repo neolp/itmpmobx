@@ -3,7 +3,8 @@ import ITMP from 'itmpws'
 
 
 class Core {
-  constructor() {
+  constructor(suburl = '/ws/') {
+    this.suburl = suburl
     this.connections = new Map()
     this.states = observable.map()
     this.intstates = observable.map()
@@ -45,7 +46,7 @@ class Core {
     if (!itmp) {
       console.log('connect new', hostport)
       itmp = new ITMP({
-        uri: "ws://" + hostport + "/ws/",
+        uri: "ws://" + hostport + this.suburl,
         binaryType: 'arraybuffer',
         reconnectTimeout: 3000,
         autoReconnect: true,
