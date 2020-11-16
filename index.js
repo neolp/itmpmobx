@@ -181,15 +181,26 @@ class Core {
         console.log('subscribed hist ok', url)
       })
     } else {
-      this.states.set(url, undefined)
-      // console.log('subscribe', url, '=', parts[0], '->', parts[1])
+      if (url.endsWith('/*')) {
+        this.states.set(url, {})
+        return itmp.subscribeOnce(parts[1], (exttopic, value) => {
+          let obj = this.states.get(url)
+          Object.assign(obj, value)
+          if (cb) cb(value, url)
+        }, opts).then((res) => {
+          console.log('subscribed *')
+        })
+      } else {
+        this.states.set(url, undefined)
+        // console.log('subscribe', url, '=', parts[0], '->', parts[1])
 
-      return itmp.subscribeOnce(parts[1], (exttopic, value) => {
-        this.states.set(url, value)
-        if (cb) cb(value, url)
-      }, opts).then((res) => {
-        console.log('subscribed')
-      })
+        return itmp.subscribeOnce(parts[1], (exttopic, value) => {
+          this.states.set(url, value)
+          if (cb) cb(value, url)
+        }, opts).then((res) => {
+          console.log('subscribed')
+        })
+      }
     }
   }
 
