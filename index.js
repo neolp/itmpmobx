@@ -145,7 +145,8 @@ class Core {
     }
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
-    this.states.set(url, undefined)
+    if (!this.states.has(url))
+      this.states.set(url, undefined)
     // console.log('get value', url, '=', parts[0], '->', parts[1])
 
     return itmp.call(parts[1], undefined).then((value) => {
@@ -163,7 +164,8 @@ class Core {
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
     if (typeof opts === 'object' && opts.limit) {
-      this.states.set(url, observable.array())
+      if (!this.states.has(url) || !Array.isArray(this.states.get(url)))
+        this.states.set(url, observable.array())
       console.log('subscribe hist', url)
 
       return itmp.subscribeOnce(parts[1], (exttopic, value, vopts) => {
@@ -182,7 +184,8 @@ class Core {
       })
     } else {
       if (url.endsWith('/*')) {
-        this.states.set(url, {})
+        if (!this.states.has(url) || typeof this.states.get(url) !== 'object')
+          this.states.set(url, {})
         return itmp.subscribeOnce(parts[1], (exttopic, value) => {
           let obj = this.states.get(url)
           Object.assign(obj, value)
@@ -191,7 +194,8 @@ class Core {
           console.log('subscribed *')
         })
       } else {
-        this.states.set(url, undefined)
+        if (!this.states.has(url))
+          this.states.set(url, undefined)
         // console.log('subscribe', url, '=', parts[0], '->', parts[1])
 
         return itmp.subscribeOnce(parts[1], (exttopic, value) => {
