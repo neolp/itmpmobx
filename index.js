@@ -1,5 +1,5 @@
 import {
-  observable, onBecomeObserved,
+  observable, runInAction,
   onBecomeUnobserved
 } from 'mobx'
 import ITMP from 'itmpws'
@@ -80,18 +80,18 @@ class Core {
 
   }
 
-  getter(url) {
+  getter(url, opts) {
     if (url.startsWith('itmpws://') && !this.statesobservers.has(url)) {
-      console.log('auto subscribe', url)
-      this.subscribe(url)
-      if (!this.states.has(url))
-        this.states.set(url, undefined)
+      //console.log('auto subscribe', url)
+      this.subscribe(url, opts)
+      // if (!this.states.has(url))
+      // this.states.set(url, undefined)
       let rem = onBecomeUnobserved(this.states, url, () => {
         this.statesobservers.get(url)() //disconnect hook
         this.statesobservers.delete(url)
         this.states.delete(url)
         this.unsubscribe(url)
-        console.log('auto unsubscribe', url)
+        //console.log('auto unsubscribe', url)
       })
       this.statesobservers.set(url, rem)
     }
@@ -99,6 +99,7 @@ class Core {
       //      if (url.endsWith('#history'))
       return this.states.get(url)
     } catch (e) {
+      console.error('getter error', e)
       return undefined
     }
 
@@ -122,17 +123,26 @@ class Core {
         autoReconnect: true,
         reconnectMaxCount: 0,
         onOpen: () => {
-          this.intstates.set(hostport, 'online')
+          runInAction(() => {
+            this.intstates.set(hostport, 'online')
+          })
         },
         onClose: () => {
-          this.intstates.set(hostport, 'offline')
+          runInAction(() => {
+            this.intstates.set(hostport, 'offline')
+          })
         },
         onError: () => { },
         onReconnect: () => { }
       })
-      this.intstates.set(hostport, 'trying')
-      itmp.connect()
       this.connections.set(hostport, itmp)
+
+      setImmediate(() => {
+        runInAction(() => {
+          this.intstates.set(hostport, 'trying')
+        })
+        itmp.connect()
+      })
     }
 
     return itmp
@@ -145,12 +155,11 @@ class Core {
     }
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
-    if (!this.states.has(url))
-      this.states.set(url, undefined)
+    this.states.set(url, undefined)
     // console.log('get value', url, '=', parts[0], '->', parts[1])
 
     return itmp.call(parts[1], undefined).then((value) => {
-      console.log('got', url, value)
+      //console.log('got', url, value)
       this.states.set(url, value)
       return value
     })
@@ -163,9 +172,28 @@ class Core {
     }
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
-    if (typeof opts === 'object' && opts.limit) {
-      if (!this.states.has(url) || !Array.isArray(this.states.get(url)))
-        this.states.set(url, observable.array())
+    if (url.endsWith('[]')) {
+      this.states.set(url, observable.array(), { deep: false })
+      console.log('subscribe hist', url)
+
+      return itmp.subscribeOnce(parts[1], (exttopic, value, vopts) => {
+        runInAction(() => {
+          let arr = this.states.get(url)
+          //arr.push(value)
+          insersorted(arr, value, (a, b) => {
+            if (a[0] < b[0]) return -1
+            if (a[0] > b[0]) return 1
+            return 0
+          })
+          if (arr.length > opts.limit) arr.splice(0, 1)
+          //this.states.get(url).set(opts.t, value)
+          if (cb) cb(arr, url)
+        })
+      }, opts).then((res) => {
+        console.log('subscribed hist ok', url)
+      })
+    } else if (typeof opts === 'object' && opts.limit) {
+      this.states.set(url, observable.array())
       console.log('subscribe hist', url)
 
       return itmp.subscribeOnce(parts[1], (exttopic, value, vopts) => {
@@ -184,25 +212,28 @@ class Core {
       })
     } else {
       if (url.endsWith('/*')) {
-        if (!this.states.has(url) || typeof this.states.get(url) !== 'object')
-          this.states.set(url, {})
+        this.states.set(url, {})
         return itmp.subscribeOnce(parts[1], (exttopic, value) => {
-          let obj = this.states.get(url)
-          Object.assign(obj, value)
-          if (cb) cb(value, url)
+          runInAction(() => {
+            //console.log('itmp update', url)
+            let obj = this.states.get(url)
+            Object.assign(obj, value)
+            if (cb) cb(value, url)
+          })
         }, opts).then((res) => {
-          console.log('subscribed *')
+          //console.log('subscribed *')
         })
       } else {
-        if (!this.states.has(url))
-          this.states.set(url, undefined)
+        this.states.set(url, undefined)
         // console.log('subscribe', url, '=', parts[0], '->', parts[1])
 
         return itmp.subscribeOnce(parts[1], (exttopic, value) => {
-          this.states.set(url, value)
-          if (cb) cb(value, url)
+          runInAction(() => {
+            this.states.set(url, value)
+            if (cb) cb(value, url)
+          })
         }, opts).then((res) => {
-          console.log('subscribed')
+          //console.log('subscribed')
         })
       }
     }
@@ -218,14 +249,14 @@ class Core {
   }
 
   call(url, args) {
-    console.log('call', url, args)
+    //console.log('call', url, args)
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
-    console.log(itmp)
+    //console.log(itmp)
     return itmp.call(parts[1], args)
   }
   emit(url, value) {
-    console.log('emit', url, value)
+    //console.log('emit', url, value)
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
     //    if (parts[1]) parts[1] += '/'
