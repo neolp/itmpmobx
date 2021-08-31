@@ -278,4 +278,4 @@ class Core {
   }
 }
 
-export default new Core()
+export default Core

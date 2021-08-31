@@ -1,2 +1,2 @@
 # itmpws
-itmp client for websocket
+itmp client for mobx and websocket
