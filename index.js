@@ -106,7 +106,9 @@ class Core {
   }
   setter(url, value) {
     try {
-      return this.states.set(url, value)
+      runInAction(() => {
+        return this.states.set(url, value)
+      })
     } catch (e) {
       return undefined
     }
