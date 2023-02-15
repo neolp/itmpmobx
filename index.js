@@ -139,12 +139,12 @@ class Core {
       })
       this.connections.set(hostport, itmp)
 
-      setImmediate(() => {
+//      setImmediate(() => {
         runInAction(() => {
           this.intstates.set(hostport, 'trying')
         })
         itmp.connect()
-      })
+//      })
     }
 
     return itmp
@@ -162,7 +162,9 @@ class Core {
 
     return itmp.call(parts[1], undefined).then((value) => {
       //console.log('got', url, value)
-      this.states.set(url, value)
+      runInAction(() => {
+        this.states.set(url, value)
+      })
       return value
     })
   }
@@ -214,7 +216,9 @@ class Core {
       })
     } else {
       if (url.endsWith('/*')) {
-        this.states.set(url, {})
+        runInAction(() => {
+          this.states.set(url, {})
+        })
         return itmp.subscribeOnce(parts[1], (exttopic, value) => {
           runInAction(() => {
             //console.log('itmp update', url)
@@ -226,7 +230,9 @@ class Core {
           //console.log('subscribed *')
         })
       } else {
-        this.states.set(url, undefined)
+        runInAction(() => {
+          this.states.set(url, undefined)
+        })
         // console.log('subscribe', url, '=', parts[0], '->', parts[1])
 
         return itmp.subscribeOnce(parts[1], (exttopic, value) => {

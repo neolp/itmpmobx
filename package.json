@@ -1,6 +1,6 @@
-{
+0{
   "name": "itmpmobx",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "itmp mobx client for websocket in browser",
   "main": "index.js",
   "scripts": {
