@@ -52,8 +52,9 @@ function insersorted(array, element, compare) {
 }
 
 class Core {
-  constructor(suburl = '/ws/') {
+  constructor(suburl = '/ws/', prefix) {
     this.suburl = suburl
+    this.prefix = prefix
     this.connections = new Map()
     this.states = observable.map()
     this.statesobservers = new Map()
@@ -67,6 +68,7 @@ class Core {
 
   }
   state(url) {
+    if (this.prefix) url=this.prefix+url
     if (!url.startsWith('itmpws://')) {
       console.error('state unknown schema', url)
       throw new Error('unknown schema')
@@ -81,6 +83,9 @@ class Core {
   }
 
   getter(url, opts) {
+    console.log('getter',url)
+    if (this.prefix) url=this.prefix+url
+    console.log('getter2',url)
     if (url.startsWith('itmpws://') && !this.statesobservers.has(url)) {
       //console.log('auto subscribe', url)
       this.subscribe(url, opts)
@@ -151,6 +156,7 @@ class Core {
   }
 
   getvalue(url, opts) {
+    if (this.prefix) url=this.prefix+url
     if (!url.startsWith('itmpws://')) {
       console.error('subscribe unknown schema', url)
       throw new Error('unknown schema')
@@ -170,6 +176,7 @@ class Core {
   }
 
   subscribe(url, opts, cb) {
+    if (this.prefix) url=this.prefix+url
     if (!url.startsWith('itmpws://')) {
       console.error('subscribe unknown schema', url)
       throw new Error('unknown schema')
@@ -248,6 +255,7 @@ class Core {
   }
 
   unsubscribe(url) {
+    if (this.prefix) url=this.prefix+url
     // console.log('UNsubscribe', url)
     if (!url.startsWith('itmpws://'))
       throw new Error('unknown schema')
@@ -257,6 +265,7 @@ class Core {
   }
 
   call(url, args) {
+    if (this.prefix) url=this.prefix+url
     //console.log('call', url, args)
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
@@ -264,6 +273,7 @@ class Core {
     return itmp.call(parts[1], args)
   }
   emit(url, value) {
+    if (this.prefix) url=this.prefix+url
     //console.log('emit', url, value)
     const parts = this.splitUrl(url)
     let itmp = this.connect(parts[0])
