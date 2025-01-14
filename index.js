@@ -83,9 +83,9 @@ class Core {
   }
 
   getter(url, opts) {
-    console.log('getter',url)
+    //console.log('getter',url)
     if (this.prefix) url=this.prefix+url
-    console.log('getter2',url)
+    //console.log('getter2',url)
     if (url.startsWith('itmpws://') && !this.statesobservers.has(url)) {
       //console.log('auto subscribe', url)
       this.subscribe(url, opts)
@@ -122,7 +122,7 @@ class Core {
   connect(hostport) {
     let itmp = this.connections.get(hostport) // try to get connection
     if (!itmp) {
-      console.log('connect new', hostport)
+      // console.log('connect new', hostport)
       itmp = new ITMP({
         uri: "ws://" + hostport + this.suburl,
         binaryType: 'arraybuffer',
